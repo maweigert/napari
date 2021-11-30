@@ -576,7 +576,6 @@ class Shapes(Layer):
             n_text=self.nshapes,
             properties=self.properties,
         )
-
         # Trigger generation of view slice and thumbnail
         self._update_dims()
 
@@ -1532,10 +1531,15 @@ class Shapes(Layer):
             The vispy text anchor for the y axis
         """
         # get the coordinates of the vertices for the shapes in view
+
+        if len(self.text.values)==0:
+            return self.text.compute_text_coords(
+            np.zeros((0,self._ndisplay)), self._ndisplay)
+
+        
         in_view_shapes_coords = [
             self._data_view.data[i] for i in self._indices_view
         ]
-
         # get the coordinates for the dimensions being displayed
         sliced_in_view_coords = [
             position[:, self._dims_displayed]
@@ -2207,7 +2211,6 @@ class Shapes(Layer):
     def _add_shapes_to_view(self, shape_inputs, data_view):
         """Build new shapes and add them to the _data_view"""
         for d, st, ew, ec, fc, z in shape_inputs:
-
             shape_cls = shape_classes[ShapeType(st)]
             shape = shape_cls(
                 d,
@@ -2216,9 +2219,9 @@ class Shapes(Layer):
                 dims_order=self._dims_order,
                 ndisplay=self._ndisplay,
             )
-
             # Add shape
             data_view.add(shape, edge_color=ec, face_color=fc, z_refresh=False)
+            
         data_view._update_z_order()
 
     @property
@@ -2515,7 +2518,6 @@ class Shapes(Layer):
             zoom_factor = np.divide(
                 self._thumbnail_shape[:2], shape[-2:]
             ).min()
-
             colormapped = self._data_view.to_colors(
                 colors_shape=self._thumbnail_shape[:2],
                 zoom_factor=zoom_factor,
