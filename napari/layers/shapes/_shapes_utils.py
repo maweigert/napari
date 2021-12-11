@@ -798,7 +798,7 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
 
     # miters per vertex are the average normals of left and right edge
     miters = .5*(full_normals[:-1]+full_normals[1:])
-
+    
     # scale miters such that their dot product with normals is 1
     _mf_dot = np.expand_dims(np.einsum('ij,ij->i', miters, full_normals[:-1]),-1)
     miters = np.divide(miters,_mf_dot, out=np.zeros_like(miters), where=np.abs(_mf_dot)>1e-10)
@@ -816,28 +816,45 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
     triangles0 = np.tile(np.array([[0,1,3],[0,3,2]]),(len(path)-1,1))
     triangles = triangles0 + 2*np.repeat(np.arange(len(path)-1)[:,np.newaxis],2,0)
 
-    
     # treat bevels
     idx_bevel = np.where(np.bitwise_or(bevel, miter_lengths > limit))[0]
-    
-    offsets[2*idx_bevel] = -.5*full_normals[:-1][idx_bevel]
 
-    # offsets[2*idx_bevel+1] = .5*full_normals[:-1][idx_bevel]
+    if len(idx_bevel)>0:
+        idx_offset = (miter_signs[idx_bevel]<0).astype(int)
+        idx_bevel_full = 2*idx_bevel+idx_offset
 
-    # new bevel vertices
-    centers_bevel = path[idx_bevel]
-    offsets_bevel = -.5*full_normals[1:][idx_bevel]
-    # offsets_bevel = .5*full_normals[1:][idx_bevel]
+        # adjust offset of outer "left" vertex 
+        offsets[idx_bevel_full] = -.5*full_normals[:-1][idx_bevel]*np.expand_dims(miter_signs[idx_bevel],-1)
+        
+        # add new "right" bevel vertices
+        centers_bevel = path[idx_bevel]
+        offsets_bevel = -.5*full_normals[1:][idx_bevel]**np.expand_dims(miter_signs[idx_bevel],-1)
 
-    triangles[2*idx_bevel,0] = len(centers) + np.arange(len(idx_bevel))
-    triangles[2*idx_bevel+1,0] = len(centers) + np.arange(len(idx_bevel))
-    centers = np.concatenate([centers, centers_bevel])
-    offsets = np.concatenate([offsets, offsets_bevel])
+        # change vertices of triangles
+        triangles[2*idx_bevel,  idx_offset] = len(centers) + np.arange(len(idx_bevel))
+        triangles[2*idx_bevel+(1-idx_offset),  idx_offset] = len(centers) + np.arange(len(idx_bevel))
+
+        # add center triangle
+        # triangles0 = np.tile(np.array([[0,1,2]]),(len(idx_bevel),1))
+        # triangles_bevel =
+
+
+        # # add new "center" bevel vertices
+        # centers_bevel = path[idx_bevel]
+        # offsets_bevel = -.5*full_normals[1:][idx_bevel]*miter_signs[idx_bevel]
+
+        # # change vertices of triangles
+        # triangles[2*idx_bevel,  idx_offset] = len(centers) + np.arange(len(idx_bevel))
+        # triangles[2*idx_bevel+(1-idx_offset),  idx_offset] = len(centers) + np.arange(len(idx_bevel))
+
+        centers = np.concatenate([centers, centers_bevel])
+        offsets = np.concatenate([offsets, offsets_bevel])
 
     # flip negative oriented triangles
     a,b,c = np.moveaxis(offsets[triangles],1,0)
     flip_idx = np.cross(b-a,c-a, axis=-1)<0
     triangles[flip_idx] = np.flip(triangles[flip_idx],axis=-1)
+
     
     return centers, offsets, triangles
 
@@ -915,45 +932,48 @@ def generate_tube_meshes(path, closed=False, tube_points=10):
     return centers, offsets, triangles
 
 
+# def path_to_mask(mask_shape, vertices):
+#     """Converts a path to a boolean mask with `True` for points lying along
+#     each edge.
+
+#     Parameters
+#     ----------
+#     mask_shape : array (2,)
+#         Shape of mask to be generated.
+#     vertices : array (N, 2)
+#         Vertices of the path.
+
+#     Returns
+#     -------
+#     mask : np.ndarray
+#         Boolean array with `True` for points along the path
+#     """
+#     mask = np.zeros(mask_shape, dtype=bool)
+#     vertices = np.round(
+#         np.clip(vertices, 0, np.subtract(mask_shape, 1))
+#     ).astype(int)
+#     for i in range(len(vertices) - 1):
+#         start = vertices[i]
+#         stop = vertices[i + 1]
+#         step = np.ceil(np.max(abs(stop - start))).astype(int)
+#         x_vals = np.linspace(start[0], stop[0], step)
+#         y_vals = np.linspace(start[1], stop[1], step)
+#         for x, y in zip(x_vals, y_vals):
+#             mask[int(x), int(y)] = 1
+#     return mask
+
 def path_to_mask(mask_shape, vertices):
-    """Converts a path to a boolean mask with `True` for points lying along
-    each edge.
-
-    Parameters
-    ----------
-    mask_shape : array (2,)
-        Shape of mask to be generated.
-    vertices : array (N, 2)
-        Vertices of the path.
-
-    Returns
-    -------
-    mask : np.ndarray
-        Boolean array with `True` for points along the path
-    """
-    mask = np.zeros(mask_shape, dtype=bool)
-    vertices = np.round(
-        np.clip(vertices, 0, np.subtract(mask_shape, 1))
-    ).astype(int)
-    for i in range(len(vertices) - 1):
-        start = vertices[i]
-        stop = vertices[i + 1]
-        step = np.ceil(np.max(abs(stop - start))).astype(int)
-        x_vals = np.linspace(start[0], stop[0], step)
-        y_vals = np.linspace(start[1], stop[1], step)
-        for x, y in zip(x_vals, y_vals):
-            mask[int(x), int(y)] = 1
-    return mask
-
-def path_to_mask_new(mask_shape, vertices):
     mask_shape = np.asarray(mask_shape, dtype=int)
     mask = np.zeros(mask_shape, dtype=bool)
-
     vertices = np.round(np.clip(vertices, 0, mask_shape-1)).astype(int)
     duplicates = np.all(np.diff(vertices,axis=0)==0, axis=-1)
     duplicates = np.concatenate(([False], duplicates))
     vertices = vertices[~duplicates]
-    
+
+    # TODO think of something faster her...
+    print('path_to_mask should be fixed...')
+    return mask
+
     for i in range(len(vertices) - 1):
         start = vertices[i]
         stop = vertices[i + 1]
@@ -964,8 +984,6 @@ def path_to_mask_new(mask_shape, vertices):
             mask[int(x), int(y)] = 1
     return mask
 
-
-path_to_mask = path_to_mask_new
 
 
 def poly_to_mask(mask_shape, vertices):

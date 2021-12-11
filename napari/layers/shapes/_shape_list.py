@@ -255,7 +255,6 @@ class ShapeList:
                     deferred=True,
                 )
             )
-
         if shape_index is None:
             shape_index = len(self.shapes)
             self.shapes.append(shape)
@@ -284,64 +283,66 @@ class ShapeList:
         self._vertices = np.append(
             self._vertices, shape.data_displayed, axis=0
         )
+
         index = np.repeat(shape_index, len(shape.data))
         self._index = np.append(self._index, index, axis=0)
 
         # Add faces to mesh
         m = len(self._mesh.vertices)
         vertices = shape._face_vertices
-        self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
+        if len(vertices)>0: self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
         vertices = shape._face_vertices
-        self._mesh.vertices_centers = np.append(
+        if len(vertices)>0: self._mesh.vertices_centers = np.append(
             self._mesh.vertices_centers, vertices, axis=0
         )
         vertices = np.zeros(shape._face_vertices.shape)
-        self._mesh.vertices_offsets = np.append(
+        if len(vertices)>0: self._mesh.vertices_offsets = np.append(
             self._mesh.vertices_offsets, vertices, axis=0
         )
         index = np.repeat([[shape_index, 0]], len(vertices), axis=0)
-        self._mesh.vertices_index = np.append(
+        if len(index)>0: self._mesh.vertices_index = np.append(
             self._mesh.vertices_index, index, axis=0
         )
 
         triangles = shape._face_triangles + m
-        self._mesh.triangles = np.append(
+        
+        if len(triangles)>0: self._mesh.triangles = np.append(
             self._mesh.triangles, triangles, axis=0
         )
         index = np.repeat([[shape_index, 0]], len(triangles), axis=0)
-        self._mesh.triangles_index = np.append(
+        if len(index)>0 : self._mesh.triangles_index = np.append(
             self._mesh.triangles_index, index, axis=0
         )
         color_array = np.repeat([face_color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(
             self._mesh.triangles_colors, color_array, axis=0
         )
-
+        
         # Add edges to mesh
         m = len(self._mesh.vertices)
         vertices = (
             shape._edge_vertices + shape.edge_width * shape._edge_offsets
         )
-        self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
+        if len(vertices)>0: self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
         vertices = shape._edge_vertices
-        self._mesh.vertices_centers = np.append(
+        if len(vertices)>0: self._mesh.vertices_centers = np.append(
             self._mesh.vertices_centers, vertices, axis=0
         )
         vertices = shape._edge_offsets
-        self._mesh.vertices_offsets = np.append(
+        if len(vertices)>0: self._mesh.vertices_offsets = np.append(
             self._mesh.vertices_offsets, vertices, axis=0
         )
         index = np.repeat([[shape_index, 1]], len(vertices), axis=0)
-        self._mesh.vertices_index = np.append(
+        if len(index)>0: self._mesh.vertices_index = np.append(
             self._mesh.vertices_index, index, axis=0
         )
 
         triangles = shape._edge_triangles + m
-        self._mesh.triangles = np.append(
+        if len(triangles)>0: self._mesh.triangles = np.append(
             self._mesh.triangles, triangles, axis=0
         )
         index = np.repeat([[shape_index, 1]], len(triangles), axis=0)
-        self._mesh.triangles_index = np.append(
+        if len(index)>0: self._mesh.triangles_index = np.append(
             self._mesh.triangles_index, index, axis=0
         )
         color_array = np.repeat([edge_color], len(triangles), axis=0)
@@ -352,6 +353,7 @@ class ShapeList:
         if z_refresh:
             # Set z_order
             self._update_z_order()
+
 
     def remove_all(self):
         """Removes all shapes"""
@@ -988,7 +990,10 @@ class ShapeList:
         if max_shapes is not None and len(z_order_in_view) > max_shapes:
             z_order_in_view = z_order_in_view[0:max_shapes]
 
+        print('adjust to_colors')
+        return colors
         for ind in z_order_in_view:
+            
             mask = self.shapes[ind].to_mask(
                 colors_shape, zoom_factor=zoom_factor, offset=offset
             )
