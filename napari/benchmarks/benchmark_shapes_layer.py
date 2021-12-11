@@ -61,7 +61,7 @@ class Shapes2DSuite:
 class ShapesPath2DSuite:
     """Benchmarks for the Shapes layer with 2D data"""
 
-    params = [2 ** i for i in range(6, 12)]
+    params = [2 ** i for i in range(8, 12)]
 
     def setup(self, n):
         np.random.seed(0)
@@ -70,8 +70,6 @@ class ShapesPath2DSuite:
 
     def time_create_layer(self, n):
         """Time to create an image layer."""
-        # import sys
-        # print(self.data[0].shape, file=sys.stderr)
         Shapes(self.data, shape_type='path')
 
     def time_refresh(self, n):
