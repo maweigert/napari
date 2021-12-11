@@ -24,7 +24,7 @@
     // "install_command": ["MAMBA_ALWAYS_YES=true conda env update -n $CONDA_DEFAULT_ENV -f env.yml", "in-dir={env_dir} python -m pip install {conf_dir}"],
 
     // List of branches to benchmark
-    "branches": ["main"],
+    "branches": ["main", "faster_shapes"],
 
     // The tool to use to create environments.
     "environment_type": "conda",
