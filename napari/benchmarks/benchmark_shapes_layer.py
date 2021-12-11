@@ -56,45 +56,6 @@ class Shapes2DSuite:
     def mem_data(self, n):
         """Memory used by raw data."""
         return self.data
-
-
-class ShapesPath2DSuite:
-    """Benchmarks for the Shapes layer with 2D data"""
-
-    params = [2 ** i for i in range(8, 12)]
-
-    def setup(self, n):
-        np.random.seed(0)
-        self.data = [50 * np.random.random((20, 2)) for i in range(n)]
-        self.layer = Shapes(self.data, shape_type='path')
-
-    def time_create_layer(self, n):
-        """Time to create an image layer."""
-        Shapes(self.data, shape_type='path')
-
-    def time_refresh(self, n):
-        """Time to refresh view."""
-        self.layer.refresh()
-
-    def time_set_view_slice(self, n):
-        """Time to set view slice."""
-        self.layer._set_view_slice()
-
-    def time_update_thumbnail(self, n):
-        """Time to update thumbnail."""
-        self.layer._update_thumbnail()
-
-    def time_get_value(self, n):
-        """Time to get current value."""
-        self.layer.get_value((0,) * 2)
-
-    def mem_layer(self, n):
-        """Memory used by layer."""
-        return self.layer
-
-    def mem_data(self, n):
-        """Memory used by raw data."""
-        return self.data
     
 
 class Shapes3DSuite:
