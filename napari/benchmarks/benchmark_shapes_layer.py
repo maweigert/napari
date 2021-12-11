@@ -65,11 +65,13 @@ class ShapesPath2DSuite:
 
     def setup(self, n):
         np.random.seed(0)
-        self.data = [50 * np.random.random((6, 2)) for i in range(n)]
+        self.data = [50 * np.random.random((20, 2)) for i in range(n)]
         self.layer = Shapes(self.data, shape_type='path')
 
     def time_create_layer(self, n):
         """Time to create an image layer."""
+        # import sys
+        # print(self.data[0].shape, file=sys.stderr)
         Shapes(self.data, shape_type='path')
 
     def time_refresh(self, n):

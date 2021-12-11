@@ -383,7 +383,7 @@ class ShapeList:
 
         m_mesh_vertices_count = 0
         
-        print('add_shape_list', len(shapes))
+        # print('add_shape_list', len(shapes))
         
         for shape, face_color, edge_color in \
             zip(shapes, face_colors, edge_colors):
@@ -1143,7 +1143,7 @@ class ShapeList:
         if max_shapes is not None and len(z_order_in_view) > max_shapes:
             z_order_in_view = z_order_in_view[0:max_shapes]
 
-        print('adjust to_colors')
+        # print('adjust to_colors')
         return colors
         for ind in z_order_in_view:
             
