@@ -2251,37 +2251,20 @@ class Shapes(Layer):
         self._display_order_stored = copy(self._dims_order)
         self._ndisplay_stored = copy(self._ndisplay)
         self._update_dims()
-
-    # def _add_shapes_to_view(self, shape_inputs, data_view):
-    #     """Build new shapes and add them to the _data_view"""
-    #     for d, st, ew, ec, fc, z in shape_inputs:
-    #         shape_cls = shape_classes[ShapeType(st)]
-    #         shape = shape_cls(
-    #             d,
-    #             edge_width=ew,
-    #             z_index=z,
-    #             dims_order=self._dims_order,
-    #             ndisplay=self._ndisplay,
-    #         )
-    #         # Add shape
-    #         data_view.add(shape, edge_color=ec, face_color=fc, z_refresh=False)
-            
-    #     data_view._update_z_order()
     
     def _add_shapes_to_view(self, shape_inputs, data_view):
         """Build new shapes and add them to the _data_view"""
 
         shape_inputs = tuple(shape_inputs)
         sh_inp = tuple((shape_classes[ShapeType(st)](d, edge_width=ew,z_index=z,
-                                                 dims_order=self._dims_order,
-                                                 ndisplay=self._ndisplay),
-                    ec, fc)
+                                dims_order=self._dims_order,
+                                ndisplay=self._ndisplay), ec, fc)
                    for d, st, ew, ec, fc, z in shape_inputs)
         
         shapes, edge_colors, face_colors = tuple(zip(*sh_inp))
 
         # Add shapes
-        data_view.add_multiple(shapes,
+        data_view.add(shapes,
                                edge_colors=edge_colors,
                                face_colors=face_colors, z_refresh=False)
             
