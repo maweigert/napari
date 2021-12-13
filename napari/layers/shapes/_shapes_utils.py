@@ -809,7 +809,6 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
     _mf_dot = np.expand_dims(np.einsum('ij,ij->i', miters, full_normals[:-1]),-1)
     miters = np.divide(miters,_mf_dot, out=np.zeros_like(miters), where=np.abs(_mf_dot)>1e-10)
     miter_lengths = np.linalg.norm(miters, axis=1)
-
     
     # miter_signs -> +1 if edges turn clockwise, -1 if anticlockwise
     miter_signs = _sign_nonzero(np.cross(full_normals[1:], full_normals[:-1]))
@@ -824,12 +823,8 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
     triangles0 = np.tile(np.array([[0,1,3],[0,3,2]]),(len(path)-1,1))
     triangles = triangles0 + 2*np.repeat(np.arange(len(path)-1)[:,np.newaxis],2,0)
 
-    # --------- Bevels --------
-    
     # treat bevels
     idx_bevel = np.where(np.bitwise_or(bevel, miter_lengths > limit))[0]
-    idx_bevel = np.where(np.bitwise_or(bevel, miter_lengths > 1.2))[0]
-
 
     if len(idx_bevel)>0:
         # only the 'outer' offset should be changed, lets get their ids
@@ -844,36 +839,21 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
         centers_bevel = path[idx_bevel]
         offsets_bevel = -.5*full_normals[1:][idx_bevel]*sign_bevel
 
-        print(triangles)
         # change vertices of triangles to the newly added right vertices
         triangles[2*idx_bevel,  idx_offset] = len(centers) + np.arange(len(idx_bevel))
         triangles[2*idx_bevel+(1-idx_offset),  idx_offset] = len(centers) + np.arange(len(idx_bevel))
 
-
-        
-        print(offsets)
         # add center triangle
         triangles0 = np.tile(np.array([[0,1,2]]),(len(idx_bevel),1))
 
-
         triangles_bevel = np.array([2*idx_bevel+idx_offset, 2*idx_bevel+(1-idx_offset), len(centers) + np.arange(len(idx_bevel))]).T
 
-        print(triangles_bevel.shape)
-        
-
-    #     # # add new "center" bevel vertices
-    #     # centers_bevel = path[idx_bevel]
-    #     # offsets_bevel = -.5*full_normals[1:][idx_bevel]*miter_signs[idx_bevel]
-
-    #     # # change vertices of triangles
-    #     # triangles[2*idx_bevel,  idx_offset] = len(centers) + np.arange(len(idx_bevel))
-    #     # triangles[2*idx_bevel+(1-idx_offset),  idx_offset] = len(centers) + np.arange(len(idx_bevel))
-
+        # add all new centers, offsets, and triangles
         centers   = np.concatenate([centers, centers_bevel])
         offsets   = np.concatenate([offsets, offsets_bevel])
         triangles = np.concatenate([triangles, triangles_bevel])
-    # -------
-    
+
+        
     # flip negative oriented triangles
     a,b,c = np.moveaxis(offsets[triangles],1,0)
     flip_idx = np.cross(b-a,c-a, axis=-1)<0
