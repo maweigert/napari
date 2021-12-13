@@ -1144,7 +1144,6 @@ class ShapeList:
             z_order_in_view = z_order_in_view[0:max_shapes]
 
         # print('adjust to_colors')
-        return colors
         for ind in z_order_in_view:
             
             mask = self.shapes[ind].to_mask(

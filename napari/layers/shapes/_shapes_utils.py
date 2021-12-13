@@ -788,6 +788,7 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
     if closed:
         path = np.concatenate((path, [path[0]]))
 
+
     # extend path by adding a vertex at beginning and end     
     if closed:
         _ext_point1 = path[-2]
@@ -817,23 +818,50 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
     # generate centers/offsets
     centers = np.repeat(path,2,axis=0)
     offsets = np.repeat(miters,2,axis=0)
-    # offsets[::2] *= -np.expand_dims(miter_signs,-1)
     offsets[::2] *= -1
     # offsets[2*np.arange(len(path))+(miter_signs<0).astype(int)] *= -1
     triangles0 = np.tile(np.array([[0,1,3],[0,3,2]]),(len(path)-1,1))
     triangles = triangles0 + 2*np.repeat(np.arange(len(path)-1)[:,np.newaxis],2,0)
 
-    # treat bevels
-    idx_bevel = np.where(np.bitwise_or(bevel, miter_lengths > limit))[0]
+    # if closed:
+    #     centers   = centers[:-2]
+    #     offsets   = offsets[:-2]
+    #     triangles[-2,-1] = 3
+    #     triangles[-1,-2:] = [3,2]
 
-    if len(idx_bevel)>0:
-        # only the 'outer' offset should be changed, lets get their ids
+
+        
+    # treat bevels
+
+    idx_bevel = np.where(np.bitwise_or(bevel, miter_lengths > limit))[0]
+    # idx_bevel = np.where(np.bitwise_or(bevel, miter_lengths > 10))[0]
+
+    # idx_bevel = np.append(idx_bevel, (0,))
+
+    # print(len(centers), len(path))
+
+    if len(idx_bevel) > 0:
+        # only the 'outwards sticking' offsets should be changed
         idx_offset = (miter_signs[idx_bevel]<0).astype(int)
         idx_bevel_full = 2*idx_bevel+idx_offset
         sign_bevel = np.expand_dims(miter_signs[idx_bevel],-1)
         
-        # adjust offset of outer "left" vertex 
+        # adjust offset of outer "left" vertex
         offsets[idx_bevel_full] = -.5*full_normals[:-1][idx_bevel]*sign_bevel
+
+        # adjust first and last vertex (relevant for closed)
+        _outer = np.bitwise_or(idx_bevel==0, idx_bevel==len(path)-1)
+        
+        offsets[idx_bevel_full[_outer]] = -.5*\
+            full_normals[1:][idx_bevel[_outer]]*sign_bevel[_outer]
+        offsets[idx_bevel_full[idx_bevel==len(path)-1]] *= -1
+
+        _outer = idx_bevel==0
+                
+        idx_bevel      = idx_bevel[~_outer]
+        idx_bevel_full = idx_bevel_full[~_outer]
+        sign_bevel     = sign_bevel[~_outer]
+        idx_offset     = idx_offset[~_outer]
         
         # add new "right" bevel vertices
         centers_bevel = path[idx_bevel]
@@ -846,14 +874,17 @@ def generate_2D_edge_meshes_new(path, closed=False, limit=3, bevel=False):
         # add center triangle
         triangles0 = np.tile(np.array([[0,1,2]]),(len(idx_bevel),1))
 
-        triangles_bevel = np.array([2*idx_bevel+idx_offset, 2*idx_bevel+(1-idx_offset), len(centers) + np.arange(len(idx_bevel))]).T
+        triangles_bevel = np.array([2*idx_bevel+idx_offset,
+                                    2*idx_bevel+(1-idx_offset),
+                                    len(centers) + np.arange(len(idx_bevel))]).T
 
-        # add all new centers, offsets, and triangles
+        # # add all new centers, offsets, and triangles
         centers   = np.concatenate([centers, centers_bevel])
         offsets   = np.concatenate([offsets, offsets_bevel])
         triangles = np.concatenate([triangles, triangles_bevel])
 
-        
+    
+    
     # flip negative oriented triangles
     a,b,c = np.moveaxis(offsets[triangles],1,0)
     flip_idx = np.cross(b-a,c-a, axis=-1)<0
@@ -975,7 +1006,7 @@ def path_to_mask(mask_shape, vertices):
     vertices = vertices[~duplicates]
 
     # TODO think of something faster her...
-    print('path_to_mask should be fixed...')
+    print('_shape_utils.path_to_mask should be fixed...')
     return mask
 
     for i in range(len(vertices) - 1):
