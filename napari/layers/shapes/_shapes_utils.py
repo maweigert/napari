@@ -533,7 +533,13 @@ def triangulate_face(data):
         Px3 array of the indices of the vertices that will form the
         triangles of the triangulation
     """
-    vertices, triangles = PolygonData(vertices=data).triangulate()
+    try:
+        import triangle
+        res = triangle.triangulate(dict(vertices=data))
+        vertices, triangles = res['vertices'], res['triangles']
+    except ImportError:
+        vertices, triangles = PolygonData(vertices=data).triangulate()
+        
     triangles = triangles.astype(np.uint32)
 
     return vertices, triangles

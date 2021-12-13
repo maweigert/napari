@@ -228,12 +228,14 @@ class ShapeList:
         shapes,
         face_colors=None,
         edge_colors=None,
+        shape_index=None,
         z_refresh=True,
     ):
         if not isinstance(shapes, Iterable):
             shapes = (shapes,)
             face_colors = (face_colors,)
             edge_colors = (edge_colors,)
+            shape_index = (shape_index,)
 
         all_z_index    = list()
         all_face_color = list()
