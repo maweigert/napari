@@ -2264,7 +2264,7 @@ class Shapes(Layer):
         shapes, edge_colors, face_colors = tuple(zip(*sh_inp))
 
         # Add shapes
-        data_view.add(shapes,
+        data_view.add_multiple(shapes,
                                edge_colors=edge_colors,
                                face_colors=face_colors, z_refresh=False)
             
