@@ -14,20 +14,13 @@
     "repo": ".",
 
     // Install using default qt install
-    // "install_command": ["in-dir={env_dir} python -m pip install {conf_dir}"],
-
-    "install_command": [
-        "/bin/ln -sf /opt/homebrew/Cellar/pyqt@5/5.15.6/lib/python3.9/site-packages/PyQt5/ {env_dir}/lib/python3.9/site-packages/PyQt5",
-        "in-dir={env_dir} CC=gcc-11 CXX=g++-11 python -m pip install {conf_dir}"
-    ],
-
-    // "install_command": ["MAMBA_ALWAYS_YES=true conda env update -n $CONDA_DEFAULT_ENV -f env.yml", "in-dir={env_dir} python -m pip install {conf_dir}"],
+    "install_command": ["in-dir={env_dir} python -m pip install {conf_dir}[all]"],
 
     // List of branches to benchmark
-    "branches": ["main", "faster_shapes"],
+    "branches": ["main"],
 
     // The tool to use to create environments.
-    "environment_type": "conda",
+    "environment_type": "virtualenv",
 
     // timeout in seconds for installing any dependencies in environment
     "install_timeout": 600,
@@ -36,7 +29,7 @@
     "show_commit_url": "http://github.com/napari/napari/commit/",
 
     // The Pythons you'd like to test against.
-    "pythons": ["3.9"],
+    "pythons": ["3.7"],
 
     // The directory (relative to the current directory) to cache the Python
     // environments in.

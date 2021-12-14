@@ -1,5 +1,4 @@
 import numpy as np
-from collections.abc import Iterable
 
 from ...utils.geometry import (
     inside_triangles,
@@ -232,6 +231,7 @@ class ShapeList:
         z_refresh=True,
     ):
         """Adds a single Shape object
+
         Parameters
         ----------
         shape : subclass Shape
@@ -362,11 +362,6 @@ class ShapeList:
         shape_index=None,
         z_refresh=True,
     ):
-        if not isinstance(shapes, Iterable):
-            shapes = (shapes,)
-            face_colors = (face_colors,)
-            edge_colors = (edge_colors,)
-            shape_index = (shape_index,)
 
         all_z_index    = list()
         all_face_color = list()
@@ -383,7 +378,6 @@ class ShapeList:
 
         m_mesh_vertices_count = 0
         
-        # print('add_shape_list', len(shapes))
         
         for shape, face_color, edge_color in \
             zip(shapes, face_colors, edge_colors):
@@ -1143,7 +1137,6 @@ class ShapeList:
         if max_shapes is not None and len(z_order_in_view) > max_shapes:
             z_order_in_view = z_order_in_view[0:max_shapes]
 
-        # print('adjust to_colors')
         for ind in z_order_in_view:
             
             mask = self.shapes[ind].to_mask(

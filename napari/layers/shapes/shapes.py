@@ -601,6 +601,7 @@ class Shapes(Layer):
             n_text=self.nshapes,
             properties=self.properties,
         )
+        
         # Trigger generation of view slice and thumbnail
         self._update_dims()
 
@@ -1579,13 +1580,13 @@ class Shapes(Layer):
         anchor_y : str
             The vispy text anchor for the y axis
         """
-        # get the coordinates of the vertices for the shapes in view
 
+        # short circuit of no text present
         if len(self.text.values)==0:
             return self.text.compute_text_coords(
             np.zeros((0,self._ndisplay)), self._ndisplay)
 
-        
+        # get the coordinates of the vertices for the shapes in view        
         in_view_shapes_coords = [
             self._data_view.data[i] for i in self._indices_view
         ]
@@ -2251,19 +2252,20 @@ class Shapes(Layer):
         self._display_order_stored = copy(self._dims_order)
         self._ndisplay_stored = copy(self._ndisplay)
         self._update_dims()
-    
+
+        
     def _add_shapes_to_view(self, shape_inputs, data_view):
         """Build new shapes and add them to the _data_view"""
 
-        shape_inputs = tuple(shape_inputs)
+        # shape_inputs = tuple(shape_inputs)
         sh_inp = tuple((shape_classes[ShapeType(st)](d, edge_width=ew,z_index=z,
                                 dims_order=self._dims_order,
                                 ndisplay=self._ndisplay), ec, fc)
                    for d, st, ew, ec, fc, z in shape_inputs)
         
         shapes, edge_colors, face_colors = tuple(zip(*sh_inp))
-
-        # Add shapes
+        
+        # Add all shapes at once (faster)
         data_view.add_multiple(shapes,
                                edge_colors=edge_colors,
                                face_colors=face_colors, z_refresh=False)
@@ -2564,6 +2566,7 @@ class Shapes(Layer):
             zoom_factor = np.divide(
                 self._thumbnail_shape[:2], shape[-2:]
             ).min()
+            
             colormapped = self._data_view.to_colors(
                 colors_shape=self._thumbnail_shape[:2],
                 zoom_factor=zoom_factor,
