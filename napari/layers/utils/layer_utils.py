@@ -192,7 +192,10 @@ def segment_normal(a, b, p=(0, 0, 1)):
             norm = 1
     else:
         if d.shape[1] == 2:
-            normal = np.stack([d[:, 1], -d[:, 0]], axis=0).transpose(1, 0)
+            normal = np.empty_like(d)
+            normal[:, 0] = d[:, 1]
+            normal[:, 1] = -d[:, 0]
+            # normal = np.stack([d[:, 1], -d[:, 0]], axis=0).transpose(1, 0)
         else:
             normal = np.cross(d, p)
 
@@ -202,6 +205,133 @@ def segment_normal(a, b, p=(0, 0, 1)):
     unit_norm = normal / norm
 
     return unit_norm
+
+
+def _safe_normalize(x, axis=-1):
+    y = x / np.linalg.norm(x, axis=axis, keepdims=True)
+    y[np.isnan(y)] = 0
+    return y
+
+
+def _cumprod_matrix(x):
+    y = np.ascontiguousarray(x.copy(), dtype=np.float32)
+    for i in range(1, len(x)):
+        # y[i] = y[i-1]@x[i]
+        y[i] = x[i] @ y[i - 1]
+    return y
+
+
+# from functions import cumprod_matrix
+
+
+def _rotate_matrix(angle, axis, dtype=None):
+    """The 3x3 rotation matrix for rotation about a vector.
+
+    Note that this function supportes vectorized input,
+    i.e. angle with shape (N,) and axis with shape (N,3)
+
+    Parameters
+    ----------
+    angle : float, or ndarray of shape (N,)
+        The angle of rotation, in degrees.
+    axis : ndarray, or ndarray of shape (N,3)
+        The x, y, z coordinates of the axis direction vector for each angle
+    Returns
+    -------
+    M : ndarray of shape (4,4) or (N,4,4)
+        Transformation matrix describing the rotation.
+
+    """
+    angle = np.asanyarray(angle)
+    axis = np.asanyarray(axis)
+
+    # scalar input
+    if angle.shape == ():
+        assert axis.shape == (3,)
+    # vector input
+    else:
+        assert (
+            len(angle) == len(axis)
+            and angle.ndim == 1
+            and axis.ndim == 2
+            and axis.shape[-1] == 3
+        )
+
+    angle = np.radians(angle)
+    axis = _safe_normalize(axis)
+    x, y, z = np.moveaxis(axis, -1, 0)
+
+    c, s = np.cos(angle), np.sin(angle)
+    cx, cy, cz = (1 - c) * x, (1 - c) * y, (1 - c) * z
+
+    _zero, _one = np.zeros_like(x), np.ones_like(x)
+
+    M = np.array(
+        [
+            [cx * x + c, cy * x - z * s, cz * x + y * s, _zero],
+            [cx * y + z * s, cy * y + c, cz * y - x * s, _zero],
+            [cx * z - y * s, cy * z + x * s, cz * z + c, _zero],
+            [_zero, _zero, _zero, _one],
+        ],
+        dtype,
+    ).T
+    return M
+
+
+def _frenet_frames(points, closed):
+    """Calculates and returns the tangents, normals and binormals for
+    the tube.
+    """
+    # Compute tangent vectors for each segment
+    tangents = np.roll(points, -1, axis=0) - np.roll(points, 1, axis=0)
+    if not closed:
+        tangents[0] = points[1] - points[0]
+        tangents[-1] = points[-1] - points[-2]
+
+    tangents = _safe_normalize(tangents)
+
+    # Get initial normal and binormal
+    t = np.abs(tangents[0])
+
+    smallest = np.argmin(t)
+    normal = np.zeros(3)
+    normal[smallest] = 1.0
+
+    vec = np.cross(tangents[0], normal)
+
+    # initialize normals with the same vector
+    normals = np.repeat(
+        np.cross(tangents[0], vec)[np.newaxis], len(points), axis=0
+    )
+
+    # compute the rotation angles per vertex
+    vec = _safe_normalize(np.cross(tangents[:-1], tangents[1:]))
+    theta = np.arccos(
+        np.clip(np.einsum('ij,ij->i', tangents[1:], tangents[:-1]), -1, 1)
+    )
+
+    # the incremental rotation matrices per vertex
+    mrot = _rotate_matrix(-np.degrees(theta), vec)[:, :3, :3]
+
+    # and their cumulative product (i.e. the final rotation matrices)
+    mrot = _cumprod_matrix(mrot)
+    # mrot = functions.cumprod_matrix(mrot)
+    normals[1:] = np.einsum('ijk,ik->ij', mrot, normals[1:])
+
+    if closed:
+        theta = np.arccos(np.clip(normals[0].dot(normals[-1]), -1, 1))
+        theta /= len(points) - 1
+
+        if tangents[0].dot(np.cross(normals[0], normals[-1])) > 0:
+            theta *= -1.0
+        theta = theta * np.arange(1, len(points))
+        mrot = _rotate_matrix(-np.degrees(theta), tangents[1:])[:, :3, :3]
+
+        normals[1:] = np.einsum('ijk,ik->ij', mrot, normals[1:])
+
+    binormals = np.cross(tangents, normals)
+
+    return tangents, normals, binormals
 
 
 def convert_to_uint8(data: np.ndarray) -> np.ndarray:
