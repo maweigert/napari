@@ -8,6 +8,7 @@ from ...layers.utils.color_transformations import (
     transform_color,
     transform_color_cycle,
 )
+from ...utils.events.custom_types import Array
 from ..translations import trans
 
 
@@ -108,3 +109,47 @@ def compare_colormap_dicts(cmap_1, cmap_2):
         if not np.allclose(v, cmap_2[k]):
             return False
     return True
+
+
+def _map_dictionary(
+    dictionary: Dict, keys: Array, dict_size_cutoff: int = 100
+) -> Array:
+    """optimized version of dictionary lookup via numpy
+
+    Parameters
+    ----------
+    dictionary : Dict
+        dictionary mapping keys to values
+    keys : Array
+        the array of keys
+    dict_size_cutoff : int, optional
+        cutoff size for dictionary above which we will fall back to non-optimized keyval mapping
+        (as the optimized version will create a temporary array of size len(dictionary.keys()) * len(keys)
+        which might be too costly, 100 should be a reasonable default)
+
+    Example
+    --------
+
+    d = dict((i,i) for i in range(5))
+    x = np.random.randint(0,5, 10**6)
+
+    %timeit [d[_x] for _x in x]
+    721 ms ± 43.4 ms per loop
+
+    %timeit _map_dictionary(d,x)
+    79.7 ms ± 3.48 ms per loop
+
+    """
+
+    keys = np.asanyarray(keys)
+
+    if len(dictionary.keys()) <= dict_size_cutoff:
+        # optimized version cf https://stackoverflow.com/a/28984192
+        dict_keys = np.array(tuple(dictionary.keys()))
+        vals = np.array(tuple(dictionary.values()))
+        result = vals[(np.atleast_2d(keys).T == dict_keys).argmax(axis=1)]
+    else:
+        # fall back version (loop over values.tolist(), cf https://stackoverflow.com/a/24706209 )
+        result = np.array([dictionary[x] for x in keys.tolist()])
+
+    return result

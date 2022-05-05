@@ -6,7 +6,11 @@ from pydantic import validator
 from ...utils.events import EventedModel
 from ...utils.events.custom_types import Array
 from ..translations import trans
-from .categorical_colormap_utils import ColorCycle, compare_colormap_dicts
+from .categorical_colormap_utils import (
+    ColorCycle,
+    _map_dictionary,
+    compare_colormap_dicts,
+)
 from .standardize_color import transform_color
 
 
@@ -61,7 +65,7 @@ class CategoricalColormap(EventedModel):
                 new_color = next(self.fallback_color.cycle)
                 self.colormap[prop] = np.squeeze(transform_color(new_color))
         # map the colors
-        colors = np.array([self.colormap[x] for x in color_properties])
+        colors = _map_dictionary(self.colormap, color_properties)
         return colors
 
     @classmethod
